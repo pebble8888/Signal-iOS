@@ -229,19 +229,7 @@ class ContactViewController: OWSViewController, CNContactViewControllerDelegate 
                                                     colorSeed: contact.displayName,
                                                     diameter: UInt(avatarSize),
                                                     contactsManager: contactsManager)
-//            [[OWSContactAvatarBuilder alloc] initWithNonSignalName:self.contactShare.displayName
-//                colorSeed:self.contactShare.displayName
-//                diameter:(NSUInteger)self.iconSize
-//                contactsManager:[Environment current].contactsManager];
         avatarView.image = avatarBuilder.build()
-//        [avatarView autoSetDimension:ALDimensionWidth toSize:self.iconSize];
-//        [avatarView autoSetDimension:ALDimensionHeight toSize:self.iconSize];
-//        [avatarView setCompressionResistanceHigh];
-//        [avatarView setContentHuggingHigh];
-
-//        let avatarView = UIView.container()
-//        avatarView.backgroundColor = UIColor.ows_materialBlue
-//        avatarView.layer.cornerRadius = avatarSize * 0.5
         topView.addSubview(avatarView)
         avatarView.autoPin(toTopLayoutGuideOf: self, withInset: 20)
         avatarView.autoHCenterInSuperview()
@@ -263,7 +251,7 @@ class ContactViewController: OWSViewController, CNContactViewControllerDelegate 
 
         if let firstPhoneNumber = contact.phoneNumbers?.first {
             let phoneNumberLabel = UILabel()
-            phoneNumberLabel.text = firstPhoneNumber.phoneNumber
+            phoneNumberLabel.text = PhoneNumber.bestEffortFormatE164(asLocalizedPhoneNumber: firstPhoneNumber.phoneNumber)
             phoneNumberLabel.font = UIFont.ows_dynamicTypeCaption2
             phoneNumberLabel.textColor = UIColor.black
             phoneNumberLabel.lineBreakMode = .byTruncatingTail
@@ -399,7 +387,8 @@ class ContactViewController: OWSViewController, CNContactViewControllerDelegate 
             for phoneNumber in phoneNumbers {
                 // TODO: Try to format the phone number nicely.
                 addRow(createNameValueRow(name: phoneNumber.localizedLabel(),
-                                          value: phoneNumber.phoneNumber,
+                                          value:
+ PhoneNumber.bestEffortFormatE164(asLocalizedPhoneNumber: phoneNumber.phoneNumber),
                                           actionBlock: {
                                             guard let url = NSURL(string: "tel:\(phoneNumber.phoneNumber)") else {
                                                 owsFail("\(ContactViewController.logTag) could not open phone number.")
