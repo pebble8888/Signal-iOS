@@ -189,8 +189,7 @@ typedef enum : NSUInteger {
 @property (nonatomic, readonly) NSUInteger backButtonUnreadCount;
 
 @property (nonatomic) NSUInteger lastRangeLength;
-@property (nonatomic) BOOL composeOnOpen;
-@property (nonatomic) BOOL callOnOpen;
+@property (nonatomic) ConversationViewAction actionOnOpen;
 @property (nonatomic) BOOL peek;
 
 @property (nonatomic, readonly) OWSContactsManager *contactsManager;
@@ -396,7 +395,7 @@ typedef enum : NSUInteger {
 - (void)peekSetup
 {
     _peek = YES;
-    [self setComposeOnOpen:NO];
+    self.actionOnOpen = ConversationViewActionNone;
 }
 
 - (void)popped
@@ -405,21 +404,11 @@ typedef enum : NSUInteger {
     [self hideInputIfNeeded];
 }
 
-- (void)configureForThread:(TSThread *)thread
-    keyboardOnViewAppearing:(BOOL)keyboardOnViewAppearing
-        callOnViewAppearing:(BOOL)callOnViewAppearing
+- (void)configureForThread:(TSThread *)thread action:(ConversationViewAction)action
 {
-    // At most one.
-    OWSAssert(!keyboardOnViewAppearing || !callOnViewAppearing);
-
-    if (callOnViewAppearing) {
-        keyboardOnViewAppearing = NO;
-    }
-
     _thread = thread;
     _isGroupConversation = [self.thread isKindOfClass:[TSGroupThread class]];
-    _composeOnOpen = keyboardOnViewAppearing;
-    _callOnOpen = callOnViewAppearing;
+    self.actionOnOpen = action;
     _cellMediaCache = [NSCache new];
     // Cache the cell media for ~24 cells.
     self.cellMediaCache.countLimit = 24;
@@ -1024,14 +1013,21 @@ typedef enum : NSUInteger {
     [self updateNavigationBarSubtitleLabel];
     [self updateBackButtonUnreadCount];
 
-    if (_composeOnOpen && !self.inputToolbar.hidden) {
-        [self popKeyBoard];
-        _composeOnOpen = NO;
+    switch (self.actionOnOpen) {
+        case ConversationViewActionNone:
+            break;
+        case ConversationViewActionCompose:
+            [self popKeyBoard];
+            break;
+        case ConversationViewActionAudioCall:
+            [self audioCallAction];
+            break;
+        case ConversationViewActionVideoCall:
+            [self videoCallAction];
+            break;
     }
-    if (_callOnOpen) {
-        [self callAction];
-        _callOnOpen = NO;
-    }
+
+    self.actionOnOpen = ConversationViewActionNone;
 
     self.isViewCompletelyAppeared = YES;
     self.viewHasEverAppeared = YES;
@@ -1219,7 +1215,7 @@ typedef enum : NSUInteger {
         imageEdgeInsets.bottom = round(kBarButtonSize - (image.size.height + imageEdgeInsets.top));
         callButton.imageEdgeInsets = imageEdgeInsets;
         callButton.accessibilityLabel = NSLocalizedString(@"CALL_LABEL", "Accessibility label for placing call button");
-        [callButton addTarget:self action:@selector(callAction) forControlEvents:UIControlEventTouchUpInside];
+        [callButton addTarget:self action:@selector(audioCallAction) forControlEvents:UIControlEventTouchUpInside];
         callButton.frame = CGRectMake(0,
             0,
             round(image.size.width + imageEdgeInsets.left + imageEdgeInsets.right),
@@ -1354,7 +1350,17 @@ typedef enum : NSUInteger {
 
 #pragma mark - Calls
 
-- (void)callAction
+- (void)audioCallAction
+{
+    [self callWithVideo:NO];
+}
+
+- (void)videoCallAction
+{
+    [self callWithVideo:YES];
+}
+
+- (void)callWithVideo:(BOOL)isVideo
 {
     OWSAssert([self.thread isKindOfClass:[TSContactThread class]]);
 
@@ -1367,7 +1373,7 @@ typedef enum : NSUInteger {
     if ([self isBlockedContactConversation]) {
         [self showUnblockContactUI:^(BOOL isBlocked) {
             if (!isBlocked) {
-                [weakSelf callAction];
+                [weakSelf callWithVideo:isVideo];
             }
         }];
         return;
@@ -1377,14 +1383,14 @@ typedef enum : NSUInteger {
         [self showSafetyNumberConfirmationIfNecessaryWithConfirmationText:[CallStrings confirmAndCallButtonTitle]
                                                                completion:^(BOOL didConfirmIdentity) {
                                                                    if (didConfirmIdentity) {
-                                                                       [weakSelf callAction];
+                                                                       [weakSelf callWithVideo:isVideo];
                                                                    }
                                                                }];
     if (didShowSNAlert) {
         return;
     }
 
-    [self.outboundCallInitiator initiateCallWithRecipientId:self.thread.contactIdentifier];
+    [self.outboundCallInitiator initiateCallWithRecipientId:self.thread.contactIdentifier isVideo:isVideo];
 }
 
 - (BOOL)canCall
@@ -1867,7 +1873,7 @@ typedef enum : NSUInteger {
     UIAlertAction *callAction = [UIAlertAction actionWithTitle:[CallStrings callBackAlertCallButton]
                                                          style:UIAlertActionStyleDefault
                                                        handler:^(UIAlertAction *_Nonnull action) {
-                                                           [weakSelf callAction];
+                                                           [weakSelf audioCallAction];
                                                        }];
     [alertController addAction:callAction];
     [alertController addAction:[OWSAlerts cancelAction]];
