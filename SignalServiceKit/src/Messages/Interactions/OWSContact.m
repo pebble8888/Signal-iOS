@@ -14,6 +14,20 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+NSString *NSStringForContactPhoneType(OWSContactPhoneType value)
+{
+    switch (value) {
+        case OWSContactPhoneType_Home:
+            return @"Home";
+        case OWSContactPhoneType_Mobile:
+            return @"Mobile";
+        case OWSContactPhoneType_Work:
+            return @"Work";
+        case OWSContactPhoneType_Custom:
+            return @"Custom";
+    }
+}
+
 @interface OWSContactPhoneNumber ()
 
 @property (nonatomic) OWSContactPhoneType phoneType;
@@ -30,6 +44,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)ows_isValid
 {
     if (![PhoneNumber tryParsePhoneNumberFromE164:self.phoneNumber]) {
+        DDLogWarn(@"%@ invalid phone number; not e164: %@.", self.logTag, self.phoneNumber);
         return NO;
     }
     switch (self.phoneType) {
@@ -38,11 +53,15 @@ NS_ASSUME_NONNULL_BEGIN
         case OWSContactPhoneType_Work:
             return YES;
         case OWSContactPhoneType_Custom:
-            return self.label.ows_stripped.length > 0;
+            if (self.label.ows_stripped.length < 1) {
+                DDLogWarn(@"%@ invalid phone number; missing custom label: %@.", self.logTag, self.label);
+                return NO;
+            }
+            return YES;
     }
 }
 
-- (NSString *)labelString
+- (NSString *)localizedLabel
 {
     switch (self.phoneType) {
         case OWSContactPhoneType_Home:
@@ -56,9 +75,39 @@ NS_ASSUME_NONNULL_BEGIN
     }
 }
 
+- (NSString *)debugDescription
+{
+    NSMutableString *result = [NSMutableString new];
+    [result appendFormat:@"[Phone Number: %@, ", NSStringForContactPhoneType(self.phoneType)];
+
+    if (self.label.length > 0) {
+        [result appendFormat:@"label: %@, ", self.label];
+    }
+    if (self.phoneNumber.length > 0) {
+        [result appendFormat:@"phoneNumber: %@, ", self.phoneNumber];
+    }
+
+    [result appendString:@"]"];
+    return result;
+}
+
 @end
 
 #pragma mark -
+
+NSString *NSStringForContactEmailType(OWSContactEmailType value)
+{
+    switch (value) {
+        case OWSContactEmailType_Home:
+            return @"Home";
+        case OWSContactEmailType_Mobile:
+            return @"Mobile";
+        case OWSContactEmailType_Work:
+            return @"Work";
+        case OWSContactEmailType_Custom:
+            return @"Custom";
+    }
+}
 
 @interface OWSContactEmail ()
 
@@ -76,6 +125,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)ows_isValid
 {
     if (self.email.ows_stripped.length < 1) {
+        DDLogWarn(@"%@ invalid email: %@.", self.logTag, self.email);
         return NO;
     }
     switch (self.emailType) {
@@ -84,11 +134,15 @@ NS_ASSUME_NONNULL_BEGIN
         case OWSContactEmailType_Work:
             return YES;
         case OWSContactEmailType_Custom:
-            return self.label.ows_stripped.length > 0;
+            if (self.label.ows_stripped.length < 1) {
+                DDLogWarn(@"%@ invalid email; missing custom label: %@.", self.logTag, self.label);
+                return NO;
+            }
+            return YES;
     }
 }
 
-- (NSString *)labelString
+- (NSString *)localizedLabel
 {
     switch (self.emailType) {
         case OWSContactEmailType_Home:
@@ -102,10 +156,37 @@ NS_ASSUME_NONNULL_BEGIN
     }
 }
 
+- (NSString *)debugDescription
+{
+    NSMutableString *result = [NSMutableString new];
+    [result appendFormat:@"[Email: %@, ", NSStringForContactEmailType(self.emailType)];
+
+    if (self.label.length > 0) {
+        [result appendFormat:@"label: %@, ", self.label];
+    }
+    if (self.email.length > 0) {
+        [result appendFormat:@"email: %@, ", self.email];
+    }
+
+    [result appendString:@"]"];
+    return result;
+}
+
 @end
 
 #pragma mark -
 
+NSString *NSStringForContactAddressType(OWSContactAddressType value)
+{
+    switch (value) {
+        case OWSContactAddressType_Home:
+            return @"Home";
+        case OWSContactAddressType_Work:
+            return @"Work";
+        case OWSContactAddressType_Custom:
+            return @"Custom";
+    }
+}
 @interface OWSContactAddress ()
 
 @property (nonatomic) OWSContactAddressType addressType;
@@ -131,6 +212,7 @@ NS_ASSUME_NONNULL_BEGIN
         && self.neighborhood.ows_stripped.length < 1 && self.city.ows_stripped.length < 1
         && self.region.ows_stripped.length < 1 && self.postcode.ows_stripped.length < 1
         && self.country.ows_stripped.length < 1) {
+        DDLogWarn(@"%@ invalid address; empty.", self.logTag);
         return NO;
     }
     switch (self.addressType) {
@@ -138,11 +220,15 @@ NS_ASSUME_NONNULL_BEGIN
         case OWSContactAddressType_Work:
             return YES;
         case OWSContactAddressType_Custom:
-            return self.label.ows_stripped.length > 0;
+            if (self.label.ows_stripped.length < 1) {
+                DDLogWarn(@"%@ invalid address; missing custom label: %@.", self.logTag, self.label);
+                return NO;
+            }
+            return YES;
     }
 }
 
-- (NSString *)labelString
+- (NSString *)localizedLabel
 {
     switch (self.addressType) {
         case OWSContactAddressType_Home:
@@ -152,6 +238,40 @@ NS_ASSUME_NONNULL_BEGIN
         default:
             return self.label;
     }
+}
+
+- (NSString *)debugDescription
+{
+    NSMutableString *result = [NSMutableString new];
+    [result appendFormat:@"[Address: %@, ", NSStringForContactAddressType(self.addressType)];
+
+    if (self.label.length > 0) {
+        [result appendFormat:@"label: %@, ", self.label];
+    }
+    if (self.street.length > 0) {
+        [result appendFormat:@"street: %@, ", self.street];
+    }
+    if (self.pobox.length > 0) {
+        [result appendFormat:@"pobox: %@, ", self.pobox];
+    }
+    if (self.neighborhood.length > 0) {
+        [result appendFormat:@"neighborhood: %@, ", self.neighborhood];
+    }
+    if (self.city.length > 0) {
+        [result appendFormat:@"city: %@, ", self.city];
+    }
+    if (self.region.length > 0) {
+        [result appendFormat:@"region: %@, ", self.region];
+    }
+    if (self.postcode.length > 0) {
+        [result appendFormat:@"postcode: %@, ", self.postcode];
+    }
+    if (self.country.length > 0) {
+        [result appendFormat:@"country: %@, ", self.country];
+    }
+
+    [result appendString:@"]"];
+    return result;
 }
 
 @end
@@ -201,7 +321,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (BOOL)ows_isValid
 {
-    if (self.displayName.ows_stripped.length) {
+    if (self.displayName.ows_stripped.length < 1) {
+        DDLogWarn(@"%@ invalid contact; no display name.", self.logTag);
         return NO;
     }
     BOOL hasValue = NO;
@@ -246,6 +367,44 @@ NS_ASSUME_NONNULL_BEGIN
     if (_displayName.length < 1) {
         OWSProdLogAndFail(@"%@ could not derive a valid display name.", self.logTag);
     }
+}
+
+- (NSString *)debugDescription
+{
+    NSMutableString *result = [NSMutableString new];
+    [result appendString:@"["];
+
+    if (self.givenName.length > 0) {
+        [result appendFormat:@"givenName: %@, ", self.givenName];
+    }
+    if (self.familyName.length > 0) {
+        [result appendFormat:@"familyName: %@, ", self.familyName];
+    }
+    if (self.middleName.length > 0) {
+        [result appendFormat:@"middleName: %@, ", self.middleName];
+    }
+    if (self.namePrefix.length > 0) {
+        [result appendFormat:@"namePrefix: %@, ", self.namePrefix];
+    }
+    if (self.nameSuffix.length > 0) {
+        [result appendFormat:@"nameSuffix: %@, ", self.nameSuffix];
+    }
+    if (self.displayName.length > 0) {
+        [result appendFormat:@"displayName: %@, ", self.displayName];
+    }
+
+    for (OWSContactPhoneNumber *phoneNumber in self.phoneNumbers) {
+        [result appendFormat:@"%@, ", phoneNumber.debugDescription];
+    }
+    for (OWSContactEmail *email in self.emails) {
+        [result appendFormat:@"%@, ", email.debugDescription];
+    }
+    for (OWSContactAddress *address in self.addresses) {
+        [result appendFormat:@"%@, ", address.debugDescription];
+    }
+
+    [result appendString:@"]"];
+    return result;
 }
 
 @end
