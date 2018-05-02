@@ -107,7 +107,7 @@ NSString *NSStringForContactAddressType(OWSContactAddressType value);
 @property (nonatomic, readonly, nullable) NSString *namePrefix;
 @property (nonatomic, readonly, nullable) NSString *middleName;
 @property (nonatomic, readonly, nullable) NSString *organizationName;
-@property (nonatomic, readonly, nullable) NSString *displayName;
+@property (nonatomic, readonly) NSString *displayName;
 
 @property (nonatomic, readonly, nullable) NSArray<OWSContactPhoneNumber *> *phoneNumbers;
 @property (nonatomic, readonly, nullable) NSArray<OWSContactEmail *> *emails;
