@@ -1169,7 +1169,7 @@
 "MUTE_BEHAVIOR_EXPLANATION" = "消音にすると通知が行われなくなります。";
 
 /* A button to skip a view. */
-"NAVIGATION_ITEM_SKIP_BUTTON" = "とばす";
+"NAVIGATION_ITEM_SKIP_BUTTON" = "スキップ";
 
 /* No comment provided by engineer. */
 "NETWORK_ERROR_RECOVERY" = "ネットワークへの接続を確認して再度お試しください。";
